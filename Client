@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <winsock2.h>
 #include "wtypes.h"
 #include <ws2tcpip.h>
@@ -9,7 +10,7 @@
 
 
 
-std::string LoginProccess = "80dropz:Dropz";
+
 
 FILE* process;
 
@@ -17,78 +18,66 @@ bool isFileEmpty(const std::string& filePath);
 void AccountCreation();
 bool ConfigExists();
 void login();
+int joinIRC(std::string Name);
 
 
+bool authed = false;
 bool connecting = true;
+
+char divider = ':';
+
+int initalchoice;
 
 #pragma comment(lib, "Ws2_32.lib")
 
-
+std::string Username;
+std::string Password;
 
 #define PORT 8080
+
 
 
 std::ifstream ConfigFile("config.txt");
 
 
+
 int main()
 {
-
-    login();
-    WSADATA wsaData;
-    SOCKET clientSocket;
-    sockaddr_in serverAddr;
-    char buffer[1024] = { 0 };
-
-    // Initialize Winsock
-    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-        std::cerr << "WSAStartup failed. Error: " << WSAGetLastError() << std::endl;
-        return 1;
-    }
-
-    // Create a socket
-    clientSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (clientSocket == INVALID_SOCKET) {
-        std::cerr << "Socket creation failed. Error: " << WSAGetLastError() << std::endl;
-        WSACleanup();
-        return 1;
-    }
-
-    while (connecting)
+    if (ConfigExists())
     {
-        Sleep(5);
-        // Setup server address
-        serverAddr.sin_family = AF_INET;
-        serverAddr.sin_port = htons(PORT);
-        inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr);
-
-        if (connect(clientSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
-            std::cerr << "Connect failed. Error: " << WSAGetLastError() << std::endl;
-
-        }
-        else
+        std::string WholeLine;
+        std::fstream ConfigFileUser("config.txt");
+        ConfigFileUser >> WholeLine;
+        for (int i = 0; i < WholeLine.length(); i++)
         {
-            connecting = false;
+            if (WholeLine[i] == divider)
+            {
+                Username = WholeLine.substr(0, i);
+                std::cout << Username << std::endl;
+            }
         }
-
-
     }
-
-
-
-    // Send and receive data
-
-    const char* clientRec = "Recived connection";
-    send(clientSocket, clientRec, sizeof(clientRec), 0);
-
-
-    while (true)
+    system("cls");
+    if (!authed)
     {
-
+        login();
     }
-    // Cleanup
-    closesocket(clientSocket);
-    WSACleanup();
+    std::cout << "1: Create new account \n2: Join IRC \n3: Exit \nChoice: ";
+    std::cin >> initalchoice;
+    if (initalchoice == 1)
+        AccountCreation();
+    else if (initalchoice == 2)
+    {
+        joinIRC(Username);
+    }
+    else if (initalchoice == 3)
+    {
+        std::exit(0);
+    }
+    else
+    {
+        std::cout << "Choice is invalid please try again" << std::endl;
+    }
 
     return 0;
 }
@@ -97,14 +86,13 @@ int main()
 
 bool ConfigExists()
 {
-    std::cout << "Checking if config exists" << std::endl;
     std::ifstream ConfigFile("config.txt");
     return ConfigFile.good();
 }
 
 void login()
 {
-
+    system("cls");
     if (ConfigExists())
     {
         std::string UsernameAndPassword;
@@ -112,9 +100,6 @@ void login()
         std::string Password;
         std::fstream Config("config.txt");
 
-        Config.open("config.txt");
-        std::cout << "Config Exists" << std::endl;
-        Config.open("Config.txt");
         Config >> UsernameAndPassword;
 
         if (isFileEmpty("config.txt"))
@@ -126,22 +111,23 @@ void login()
             Sleep(5000);
             AccountCreation();
         }
-        std::cout << "File has things in it" << std::endl;
+
         std::cout << "LOGIN" << std::endl;
-
-
         std::cout << "Username: ";
         std::cin >> Username;
-        std::cout << "\nPassword: ";
+        std::cout << "Password: ";
         std::cin >> Password;
         std::string PassingString = Username + ":" + Password;
         if (PassingString == UsernameAndPassword)
         {
             std::cout << "Authed Logging In " << Username << std::endl;
+            authed = true;
+            main();
         }
         else
         {
             std::cout << "Couldnt find that account" << std::endl;
+            login();
         }
     }
     else
@@ -158,6 +144,7 @@ bool isFileEmpty(const std::string& filePath) {
     std::ifstream file(filePath);
     return file.peek() == std::ifstream::traits_type::eof(); // peek() checks if there's content without extracting
 }
+
 
 void AccountCreation()
 {
@@ -184,6 +171,7 @@ void AccountCreation()
     }
     else if (Passwordone == PasswordTwo)
     {
+        system("cls");
         std::cout << "Account Created!";
         std::ofstream WritingConfig("config.txt");
         if (WritingConfig.is_open())
@@ -198,4 +186,72 @@ void AccountCreation()
             std::cout << "File didnt open SUS" << std::endl;
         }
     }
+}
+
+
+
+
+int joinIRC(std::string Name)
+{
+    system("cls");
+    WSADATA wsaData;
+    SOCKET clientSocket;
+    sockaddr_in serverAddr;
+
+    // Initialize Winsock
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+        std::cerr << "WSAStartup failed. Error: " << WSAGetLastError() << std::endl;
+        return 1;
+    }
+
+    // Create a socket
+    clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (clientSocket == INVALID_SOCKET) {
+        std::cerr << "Socket creation failed. Error: " << WSAGetLastError() << std::endl;
+        WSACleanup();
+        return 1;
+    }
+
+    while (connecting)
+    {
+        Sleep(5);
+        // Setup server address
+        serverAddr.sin_family = AF_INET;
+        serverAddr.sin_port = htons(PORT);
+        inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr);
+
+        if (connect(clientSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
+            std::cerr << "Looking for open server" << std::endl;
+
+        }
+        else
+        {
+            connecting = false;
+            std::cout << "Found a connection! feel free to start chatting: " << Name << std::endl;
+        }
+
+    }
+
+
+
+    // Send and receive data
+
+    const char* clientRec = "Recived connection";
+    send(clientSocket, clientRec, sizeof(clientRec), 0);
+
+
+    while (true)
+    {
+        std::string Message;
+        std::cout << "Message: ";
+        std::cin >> Message;
+        std::string finalMessage = Name + ": " + Message;
+        char Sending[8029];
+        std::strcpy(Sending, finalMessage.c_str());
+        send(clientSocket, Sending, sizeof(Sending), 0);
+
+    }
+    // Cleanup
+    closesocket(clientSocket);
+    WSACleanup();
 }
