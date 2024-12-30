@@ -73,13 +73,14 @@ int main() {
             if (RecivedMessage > 0)
             {
                 std::cout << "Chat Recived" << std::endl;
+                std::cout << Chat << std::endl;
                 ChatRecived = true;
             }
 
         }
         else
         {
-            
+            ChatRecived = false;
         }
 
     }
