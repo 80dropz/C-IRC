@@ -1,0 +1,201 @@
+#include <winsock2.h>
+#include "wtypes.h"
+#include <ws2tcpip.h>
+#include <Windows.h>
+#include <iostream>
+#include <stdio.h>
+#include <fstream>
+#include <string>
+
+
+
+std::string LoginProccess = "80dropz:Dropz";
+
+FILE* process;
+
+bool isFileEmpty(const std::string& filePath);
+void AccountCreation();
+bool ConfigExists();
+void login();
+
+
+bool connecting = true;
+
+#pragma comment(lib, "Ws2_32.lib")
+
+
+
+#define PORT 8080
+
+
+std::ifstream ConfigFile("config.txt");
+
+
+int main()
+{
+
+    login();
+    WSADATA wsaData;
+    SOCKET clientSocket;
+    sockaddr_in serverAddr;
+    char buffer[1024] = { 0 };
+
+    // Initialize Winsock
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+        std::cerr << "WSAStartup failed. Error: " << WSAGetLastError() << std::endl;
+        return 1;
+    }
+
+    // Create a socket
+    clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (clientSocket == INVALID_SOCKET) {
+        std::cerr << "Socket creation failed. Error: " << WSAGetLastError() << std::endl;
+        WSACleanup();
+        return 1;
+    }
+
+    while (connecting)
+    {
+        Sleep(5);
+        // Setup server address
+        serverAddr.sin_family = AF_INET;
+        serverAddr.sin_port = htons(PORT);
+        inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr);
+
+        if (connect(clientSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
+            std::cerr << "Connect failed. Error: " << WSAGetLastError() << std::endl;
+
+        }
+        else
+        {
+            connecting = false;
+        }
+
+
+    }
+
+
+
+    // Send and receive data
+
+    const char* clientRec = "Recived connection";
+    send(clientSocket, clientRec, sizeof(clientRec), 0);
+
+
+    while (true)
+    {
+
+    }
+    // Cleanup
+    closesocket(clientSocket);
+    WSACleanup();
+
+    return 0;
+}
+
+
+
+bool ConfigExists()
+{
+    std::cout << "Checking if config exists" << std::endl;
+    std::ifstream ConfigFile("config.txt");
+    return ConfigFile.good();
+}
+
+void login()
+{
+
+    if (ConfigExists())
+    {
+        std::string UsernameAndPassword;
+        std::string Username;
+        std::string Password;
+        std::fstream Config("config.txt");
+
+        Config.open("config.txt");
+        std::cout << "Config Exists" << std::endl;
+        Config.open("Config.txt");
+        Config >> UsernameAndPassword;
+
+        if (isFileEmpty("config.txt"))
+        {
+            std::cout << "Config Is Empty Creating a new one" << std::endl;;
+            char file[] = "config.txt";
+            int RemovingFile = remove(file);
+            std::cout << UsernameAndPassword << std::endl;
+            Sleep(5000);
+            AccountCreation();
+        }
+        std::cout << "File has things in it" << std::endl;
+        std::cout << "LOGIN" << std::endl;
+
+
+        std::cout << "Username: ";
+        std::cin >> Username;
+        std::cout << "\nPassword: ";
+        std::cin >> Password;
+        std::string PassingString = Username + ":" + Password;
+        if (PassingString == UsernameAndPassword)
+        {
+            std::cout << "Authed Logging In " << Username << std::endl;
+        }
+        else
+        {
+            std::cout << "Couldnt find that account" << std::endl;
+        }
+    }
+    else
+    {
+        std::cout << "Config Does not exist" << std::endl;
+        AccountCreation();
+
+    }
+}
+
+
+//i skidded this thanks
+bool isFileEmpty(const std::string& filePath) {
+    std::ifstream file(filePath);
+    return file.peek() == std::ifstream::traits_type::eof(); // peek() checks if there's content without extracting
+}
+
+void AccountCreation()
+{
+    std::string Username;
+    std::string Passwordone;
+    std::string PasswordTwo;
+    std::cout << "ACCOUNT CREATION" << std::endl;
+    std::ofstream Config("config.txt");
+    std::cout << "Username: ";
+    std::cin >> Username;
+    system("cls");
+    std::cout << "ACCOUNT CREATION" << std::endl;
+    std::cout << "Password: ";
+    std::cin >> Passwordone;
+    system("cls");
+    std::cout << "ACCOUNT CREATION" << std::endl;
+    std::cout << "Password: ";
+    std::cin >> PasswordTwo;
+    if (Passwordone != PasswordTwo)
+    {
+        std::cout << "The Passwords do not match please try again" << std::endl;
+        Sleep(5000);
+        AccountCreation();
+    }
+    else if (Passwordone == PasswordTwo)
+    {
+        std::cout << "Account Created!";
+        std::ofstream WritingConfig("config.txt");
+        if (WritingConfig.is_open())
+        {
+            WritingConfig << Username << ":" << Passwordone;
+            WritingConfig.close();
+            Sleep(5000);
+            main();
+        }
+        else
+        {
+            std::cout << "File didnt open SUS" << std::endl;
+        }
+    }
+}
